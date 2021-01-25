@@ -12,6 +12,10 @@ from mpl_toolkits.mplot3d import Axes3D
 FILE_TYPES = ["csv", "xlsx", "xls", "txt"]
 
 
+# Funcion encargada de la interfaz grafica del algoritmo apriori ademas de
+# calcular las reglas de asociacion
+
+
 def apriori(dataFrame):
     reglas = dataFrame.values.tolist()
     st.title("Reglas de asociación: apriori")
@@ -31,66 +35,74 @@ def apriori(dataFrame):
     st.write("Soporte minimo = ", min_support)
     st.write("Confianza minima = ", min_confidence)
     st.write("Elevacion minima = ", min_lift)
-    st.write("Minimo de elementos = ", min_lenght)
+    st.write("Maximo de elementos = ", min_lenght)
 
     calcular_reglas = st.button("Calcular")
     st.subheader("Reglas")
+    try:
+        if calcular_reglas:
+            # Calculo de las reglas
+            reglas = Apriori(reglas, min_support=min_support,
+                             min_confidence=min_confidence, min_lift=min_lift, min_lenght=min_lenght)
 
-    if calcular_reglas:
-        reglas = Apriori(reglas, min_support=min_support,
-                         min_confidence=min_confidence, min_lift=min_lift, min_lenght=min_lenght)
+            for item in reglas:
 
-        for item in reglas:
+                # Primer índice de la lista interna
+                # Contiene un elemento agrega otro
+                pair = item[0]
+                items = [x for x in pair]
+                st.write(items[0], " ⮕ ", items[1])
 
-            # Primer índice de la lista interna
-            # Contiene un elemento agrega otro
-            pair = item[0]
-            items = [x for x in pair]
-            st.write(items[0], " ⮕ ", items[1])
+                # Segundo índice de la lista interna
+                st.write("Soporte = ", item[1])
 
-            # Segundo índice de la lista interna
-            st.write("Soporte = ", item[1])
-
-            # Tercer índice de la lista interna
-            st.write("Confianza = ", item[2][0][2])
-            st.write("Lift = ", item[2][0][3])
-            st.markdown("---")
+                # Tercer índice de la lista interna
+                st.write("Confianza = ", item[2][0][2])
+                st.write("Lift = ", item[2][0][3])
+                st.markdown("---")
+    except:
+        st.warning("Revise los datos de entrada o los parametros")
+# Funcion encargada de la interfaz grafica del algoritmo correlacion de pearson
 
 
 def correlacion_pearson(dataFrame):
-    
+
+    # Funcion encargada de retornar la matriz de correlaciones
     def matriz_correlacion(dataFrame):
         return dataFrame.corr(method='pearson')
+    try:
+        st.title("Correlación de Pearson")
+        st.subheader("Datos")
+        st.dataframe(dataFrame)
+        if st.checkbox("Matriz de correlación"):
+            matriz = matriz_correlacion(dataFrame)
+            st.dataframe(matriz.style.highlight_max(axis=0))
+            st.subheader("Visualización de correlaciones")
 
-    matriz = matriz_correlacion(dataFrame)
-    st.title("Correlación de Pearson")
-    st.subheader("Datos")
-    st.dataframe(dataFrame)
-    st.subheader("Matriz de correlación")
-    st.dataframe(matriz.style.highlight_max(axis=0))
-    st.subheader("Visualización de correlaciones")
+            if st.checkbox("heatmap"):
+                state = st.success("Creando heatmap...")
+                fig = plt.figure()
+                sb.heatmap(matriz, annot=True)
 
-    if st.checkbox("heatmap"):
-        state = st.success("Creando heatmap...")
-        fig = plt.figure()
-        sb.heatmap(matriz, annot=True)
+                st.pyplot(fig)
 
-        st.pyplot(fig)
+                state.empty()
 
-        state.empty()
+            st.subheader("Evaluación visual")
+            variables = matriz.columns.tolist()
+            variable_1 = st.selectbox("Variable 1", variables)
+            variable_2 = st.selectbox("Variable 2", variables)
 
-    st.subheader("Evaluación visual")
-    variables = matriz.columns.tolist()
-    variable_1 = st.selectbox("Variable 1", variables)
-    variable_2 = st.selectbox("Variable 2", variables)
-
-    if st.button("Visualizar"):
-        with st.spinner('Creando grafica'):
-            figure, ax = plt.subplots()
-            ax.plot(dataFrame[variable_1], dataFrame[variable_2], 'b*')
-            ax.set_xlabel(variable_1)
-            ax.set_ylabel(variable_2)
-            st.pyplot(figure)
+            if st.button("Visualizar"):
+                with st.spinner('Creando grafica'):
+                    figure, ax = plt.subplots()
+                    ax.plot(dataFrame[variable_1], dataFrame[variable_2], 'b*')
+                    ax.set_xlabel(variable_1)
+                    ax.set_ylabel(variable_2)
+                    st.pyplot(figure)
+    except:
+        st.warning("Revise los datos de entrada")
+# Esta funcion retorna un dataFrame de la matriz con alguna metrica de distancia
 
 
 def distancias(Datos, opcion):
@@ -117,6 +129,9 @@ def distancias(Datos, opcion):
 
     return pd.DataFrame(matriz_distancias).style.highlight_min(axis=0)
 
+# Esta funcion retorna on objeto de matplolib para graficar el efecto del codo, ademas retorno
+# un numero sugerido de clusters
+
 
 def elbow_method(k, variables_modelo):
     SSE = []
@@ -135,6 +150,9 @@ def elbow_method(k, variables_modelo):
     k_sugerido = KneeLocator(
         range(1, k), SSE, curve="convex", direction="decreasing")
     return (figure, k_sugerido.elbow)
+
+# esta funcion grafica en 3d o en 2d los centroides y los datos segun las variables que se escogieron
+# en la interfaz
 
 
 def graficar_clusters(dimension, labels, centroides, datos):
@@ -163,11 +181,15 @@ def graficar_clusters(dimension, labels, centroides, datos):
             centroides.iloc[:, 0], centroides.iloc[:, 1], marker='*', c=color2, s=1000)
     return fig
 
+# Esta funcion crea los clusters de acuerdo a las variables seleccionadas y al numero de clusters especificado
+
 
 def crear_clusters(k, variables_modelo):
     MParticional = KMeans(n_clusters=k, random_state=0).fit(variables_modelo)
     MParticional.predict(variables_modelo)
     return MParticional
+
+# Funcion encargada de la interfaz grafica de las metricas de similitud
 
 
 def metricas_similitud(dataFrame):
@@ -181,70 +203,79 @@ def metricas_similitud(dataFrame):
         st.subheader("Matriz de distancias")
         if st.checkbox("Mostrar"):
             # matriz = distancias(dataFrame, distancia)
-            st.dataframe(distancias(dataFrame, distancia))
+            try:
+                st.dataframe(distancias(dataFrame, distancia))
+            except:
+                st.warning('Revise los datos de entrada')
+
+# Funcion encargada de la interfaz grafica del clustering particional
 
 
 def clustering_particional(dataFrame):
     datos = dataFrame
     st.title("Clustering particional")
     st.subheader("Datos")
-    st.dataframe(datos.head(30))
+    st.dataframe(datos.head(50))
     st.subheader("Selección de variables")
     variables = st.multiselect(
         "Variables", options=datos.columns.tolist())
     variables_modelo = datos.loc[:, variables]
+    try:
+        if st.checkbox("Elbow method"):
+            kn = st.slider("Numero de clusters K", min_value=2,
+                           max_value=100, step=1, value=15)
+            st.write("k=", kn)
+            if st.button("Calcular"):
+                figure, k_sugerido = elbow_method(kn, variables_modelo)
 
-    if st.checkbox("Elbow method"):
-        kn = st.slider("Numero de clusters K", min_value=2,
-                       max_value=100, step=1, value=15)
-        st.write("k=", kn)
-        if st.button("Calcular"):
-            figure, k_sugerido = elbow_method(kn, variables_modelo)
+                st.pyplot(figure)
+                st.write("numero de clusters sugerido: k = ", k_sugerido)
 
-            st.pyplot(figure)
-            st.write("numero de clusters sugerido: k = ", k_sugerido)
-
-    if st.checkbox("Modelo"):
-        k = st.slider("k", min_value=2, max_value=100, step=1)
-        st.write("k = ", k)
-        # if st.button("Calcular", "modelo1-key"):
-        Mparticional = crear_clusters(k, variables_modelo)
-        datos['ClusterP'] = Mparticional.labels_
-        st.dataframe(datos)
-        st.subheader("Numero de elementos por cluster")
-        st.dataframe(datos.groupby(['ClusterP'])['ClusterP'].count())
-        st.subheader("Centroides")
-        centroides = pd.DataFrame(
-            Mparticional.cluster_centers_.round(4), columns=variables)
-        st.dataframe(centroides)
-        st.subheader("Elementos mas cercanos a los centroides")
-        Cercanos, _ = pairwise_distances_argmin_min(
-            centroides, variables_modelo)
-        j = 0
-        for row in Cercanos:
-            st.write('c = ', j, 'e = ', dataFrame.index.values[row])
-            j = j + 1
-        if len(variables) > 2:
-            st.subheader("Visualizar graficamente los clusters")
-            dimension = st.selectbox("Dimensión", ['3D', '2D'])
-            if dimension == '3D':
-                x_3d = st.selectbox("dimensión x", variables)
-                y_3d = st.selectbox("dimensión y", variables)
-                z_3d = st.selectbox("dimensión z", variables)
-                if st.button("Visualizar", '1'):
-                    fig = graficar_clusters('3D', Mparticional.labels_, centroides.loc[:, [
-                                            x_3d, y_3d, z_3d]], datos.loc[:, [x_3d, y_3d, z_3d]])
-                    st.pyplot(fig)
-            elif dimension == '2D':
-                x_2d = st.selectbox("dimensión x", variables)
-                y_2d = st.selectbox("dimensión y", variables)
-                if st.button('Visualizar', '2'):
-                    fig = graficar_clusters('2D', Mparticional.labels_, centroides.loc[:, [
-                                            x_2d, y_2d]], datos.loc[:, [x_2d, y_2d]])
-                    st.pyplot(fig)
+        if st.checkbox("Modelo"):
+            k = st.slider("k", min_value=2, max_value=100, step=1)
+            st.write("k = ", k)
+            # if st.button("Calcular", "modelo1-key"):
+            Mparticional = crear_clusters(k, variables_modelo)
+            datos['ClusterP'] = Mparticional.labels_
+            st.dataframe(datos)
+            st.subheader("Numero de elementos por cluster")
+            st.dataframe(datos.groupby(['ClusterP'])['ClusterP'].count())
+            st.subheader("Centroides")
+            centroides = pd.DataFrame(
+                Mparticional.cluster_centers_.round(4), columns=variables)
+            st.dataframe(centroides)
+            st.subheader("Elementos mas cercanos a los centroides")
+            Cercanos, _ = pairwise_distances_argmin_min(
+                centroides, variables_modelo)
+            j = 0
+            for row in Cercanos:
+                st.write('c = ', j, 'e = ', dataFrame.index.values[row])
+                j = j + 1
+            if len(variables) > 2:
+                st.subheader("Visualizar graficamente los clusters")
+                dimension = st.selectbox("Dimensión", ['3D', '2D'])
+                if dimension == '3D':
+                    x_3d = st.selectbox("dimensión x", variables)
+                    y_3d = st.selectbox("dimensión y", variables)
+                    z_3d = st.selectbox("dimensión z", variables)
+                    if st.button("Visualizar", '1'):
+                        fig = graficar_clusters('3D', Mparticional.labels_, centroides.loc[:, [
+                                                x_3d, y_3d, z_3d]], datos.loc[:, [x_3d, y_3d, z_3d]])
+                        st.pyplot(fig)
+                elif dimension == '2D':
+                    x_2d = st.selectbox("dimensión x", variables)
+                    y_2d = st.selectbox("dimensión y", variables)
+                    if st.button('Visualizar', '2'):
+                        fig = graficar_clusters('2D', Mparticional.labels_, centroides.loc[:, [
+                                                x_2d, y_2d]], datos.loc[:, [x_2d, y_2d]])
+                        st.pyplot(fig)
+    except:
+        st.warning("Revise los datos de entrada")
+# Funcion encargada de la interfaz grafica de la prediccion a base de un modelo logistico
 
 
 def regresion_logistica():
+    # Funcion encargada de cargar el modelo logistico
     @st.cache
     def load_model():
         loaded_model = pickle.load(open('finalized_model.sav', 'rb'))
@@ -284,6 +315,8 @@ def regresion_logistica():
         if prediccion == 0:
             st.subheader('Maligno')
 
+# Funcion encargada de crear un dataFrame a base del archivo de datos cargado
+
 
 def load_dataFrame(uploaded_file, header, index, sep):
     def f(x): return 0 if x else None
@@ -300,6 +333,8 @@ def load_dataFrame(uploaded_file, header, index, sep):
     else:
         dataFrame = None
     return dataFrame
+
+# Funcion de entrada, encargada de llamar la funcion del algoritmo escogido
 
 
 def main():
