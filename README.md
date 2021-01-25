@@ -6,11 +6,29 @@ Hosteada en Streamlit Share
 
 ---
 Requerimientos para hostear localmente
+
+
 matplotlib==3.3.2
+
+
 scipy==1.4.1
+
+
 seaborn==0.11.1
+
+
 kneed==0.7.0
+
+
 pandas==1.1.4
+
+
 apyori==1.1.2
+
+
 streamlit==0.74.1
+
+
 scikit_learn==0.24.1
+
+
