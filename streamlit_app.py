@@ -60,7 +60,7 @@ def apriori(dataFrame):
 def correlacion_pearson(dataFrame):
     @st.cache
     def matriz_correlacion(dataFrame):
-        return dataFrame.corr(method='pearson')
+        return dataFrame.corr(method='pearson').style.highlight_max(axis=0)
 
     matriz = matriz_correlacion(dataFrame)
     st.title("Correlación de Pearson")
