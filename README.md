@@ -11,6 +11,7 @@ La carpeta dataSets contiene archivos de prueba
 ---
 Requerimientos para hostear localmente
 
+Python 3.X.X
 
 matplotlib==3.3.2
 
@@ -34,5 +35,14 @@ streamlit==0.74.1
 
 
 scikit_learn==0.24.1
+
+
+Una vez cumplido los requisitos se utiliza el siguiente comanda para ejecutar la aplicación 
+
+`streamlit run streamlit_app.py`
+
+En la terminal se vera el URL del host local 
+
+
 
 
