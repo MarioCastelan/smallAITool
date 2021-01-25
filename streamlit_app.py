@@ -253,7 +253,7 @@ def regresion_logistica():
     loaded_model = load_model()
     st.title("Sistema de inferencia basado en un modelo de regresión logistica")
     if st.checkbox("Información del modelo"):
-        st.markdown("**a+bX** = 11.72 - 0.1908854*Texture* – 0.0106113  *Area* – 2.27353782 *Compactness* – 3.0783869  *Concavity* – 0.87661688 *Symmetry* – 0.2123106 *FractalDimension*")
+        st.markdown("**a+bX** = 11.72346938 - 0.1908854*Texture* – 0.0106113  *Area* – 2.27353782 *Compactness* – 3.0783869  *Concavity* – 0.87661688 *Symmetry* – 0.2123106 *FractalDimension*")
         st.write('Exactitud = ', (39+67)/(39+67+2+6))
         st.write('Precisión = ', (39)/(39+2))
         st.write('Tasa de error = ', (2+6)/(39+67+2+6))
