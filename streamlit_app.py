@@ -24,7 +24,7 @@ def apriori(dataFrame):
         "Confianza minima", min_value=0.0, max_value=1.0, step=0.0001, value=0.2, format='%.4f')
     min_lift = st.slider("Elevacion minima", min_value=0.0,
                          max_value=2.0, step=0.0001, value=3.0, format='%.4f')
-    min_lenght = st.slider("Minimo de elementos",
+    min_lenght = st.slider("Maximo de elementos",
                            min_value=0, max_value=100, step=1, value=2, format='%i')
 
     st.subheader("Resumen de parametros")
