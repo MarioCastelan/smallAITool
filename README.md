@@ -5,6 +5,7 @@ link : https://share.streamlit.io/mariocastelan/smallaitool/main
 Hosteada en Streamlit Share
 
 El archivo finalized_model.sav contiene el modelo logistico que la aplicación cargara
+
 La carpeta dataSets contiene archivos de prueba
 
 ---
