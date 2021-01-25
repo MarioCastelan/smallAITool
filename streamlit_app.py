@@ -67,7 +67,7 @@ def correlacion_pearson(dataFrame):
     st.subheader("Datos")
     st.dataframe(dataFrame)
     st.subheader("Matriz de correlación")
-    st.dataframe(matrizstyle.highlight_max(axis=0))
+    st.dataframe(matriz.style.highlight_max(axis=0))
     st.subheader("Visualización de correlaciones")
 
     if st.checkbox("heatmap"):
