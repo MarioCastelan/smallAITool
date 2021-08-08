@@ -87,6 +87,8 @@ def analisisExploratorioDatos(dataFrame):
 def analisisComponentesPrincipales(dataFrame):
 
     st.title("Análisis de componentes principales")
+    st.header("Datos")
+    st.dataframe(dataFrame)
     st.markdown("---")
     st.header("Estandarización de los datos")
     variables = st.multiselect("Elija las variables a no considerar en el análisis, teniendo en cuenta que también se debe seleccionar las variables que no son numéricas ", 
@@ -133,6 +135,8 @@ def analisisComponentesPrincipales(dataFrame):
 def regresion_logistica(dataFrame):
     Clasificacion = linear_model.LogisticRegression() 
     st.title("Regresión logística")
+    st.header("Datos")
+    st.dataframe(dataFrame)
     st.header("Definición de variables predictoras y variable clase")
     variablesPredictoras = st.multiselect("Variables predictoras", options=dataFrame.columns.tolist())
     X = dataFrame.loc[:, variablesPredictoras]
