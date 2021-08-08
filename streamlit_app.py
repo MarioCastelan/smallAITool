@@ -1,5 +1,6 @@
 import pickle
 import pandas as pd
+import numpy as np   
 import streamlit as st
 from apyori import apriori as Apriori
 import matplotlib.pyplot as plt
@@ -9,13 +10,176 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
 from kneed import KneeLocator
 from mpl_toolkits.mplot3d import Axes3D
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn import linear_model
+from sklearn import model_selection
+
+
+
 FILE_TYPES = ["csv", "xlsx", "xls", "txt"]
+
+#  streamlit run .\streamlit_app.py
+
+def analisisExploratorioDatos(dataFrame):
+    st.title("Análisis exploratorio de datos (EDA)")
+    st.header("Datos")
+    st.dataframe(dataFrame)
+    st.header("Descripción de la estructura de los datos")
+    if st.checkbox("Mostrar", key = "qaz"):
+        st.write("Filas: ", dataFrame.shape[0])
+        st.write("Columnas: ", dataFrame.shape[1])
+        st.subheader("Tipos de datos")
+        st.write(pd.DataFrame(dataFrame.dtypes))
+    st.markdown("---")
+    st.header("Identificación de datos faltantes")
+    if st.checkbox("Valores nulos en cada variable"):
+        st.write(dataFrame.isnull().sum())
+    st.markdown("---")
+    st.header("Detección de valores atípicos")
+    # if st.checkbox("Mostrar", key = "edc"):
+    if st.checkbox("Resumen estadístico de variables numéricas"):
+        st.write(dataFrame.describe())
+    if st.checkbox("Distribución de variables numéricas"):
+        variables_histo = st.multiselect("Seleccione las variables a graficar histograma", options=dataFrame.columns.tolist())
+        if st.checkbox("Histogramas"):
+            for variable in variables_histo:
+                figure = plt.figure()
+                plt.hist(dataFrame[variable])
+                plt.title(variable)
+                plt.grid()
+                st.pyplot(figure)
+    if st.checkbox("Diagramas para detectar posibles valores atípicos"):
+        variables = st.multiselect("Seleccione las variables a graficar", options=dataFrame.columns.tolist())
+        if st.checkbox("Boxplot"):
+            try:
+                for col in variables:
+                    fig = plt.figure()
+                    sb.boxplot(x = col, data = dataFrame)
+                    st.write(fig)
+            except:
+                st.warning("Elija una variable numérica ")
+    st.markdown("---")
+    st.header("Identificación de relaciones entre variables")
+    if st.checkbox("Matriz de correlación"):
+        matriz = dataFrame.corr(method='pearson')
+        st.dataframe(matriz.style.highlight_max(axis=0))
+        if st.checkbox("heatmap"):
+            state = st.success("Creando heatmap...")
+            fig = plt.figure()
+            sb.heatmap(matriz, cmap='RdBu_r', annot=True, mask=np.triu(matriz))
+            st.pyplot(fig)
+            state.empty()
+
+    if st.checkbox("Evaluación visual"):
+        variables = dataFrame.columns.tolist()
+        variable_1 = st.selectbox("Variable 1", variables)
+        variable_2 = st.selectbox("Variable 2", variables)
+        if st.button("Visualizar"):
+            with st.spinner('Creando grafica'):
+                figure, ax = plt.subplots()
+                ax.plot(dataFrame[variable_1], dataFrame[variable_2], 'b*')
+                ax.set_xlabel(variable_1)
+                ax.set_ylabel(variable_2)
+                st.pyplot(figure)
+
+
+def analisisComponentesPrincipales(dataFrame):
+
+    st.title("Análisis de componentes principales")
+    st.markdown("---")
+    st.header("Estandarización de los datos")
+    variables = st.multiselect("Elija las variables a no considerar en el análisis, teniendo en cuenta que también se debe seleccionar las variables que no son numéricas ", 
+    options=dataFrame.columns.tolist())
+    try:
+        normalizar = StandardScaler()                       # Se instancia el objeto StandardScaler 
+        matriz = dataFrame.drop(variables, axis=1)      # Se quita la variable dependiente "Y"
+        normalizar.fit(matriz)                           # Se calcula la media y desviación para cada dimensión
+        MNormalizada = normalizar.transform(matriz)      # Se normalizan los datos 
+        MNormalizada = pd.DataFrame(MNormalizada, columns=matriz.columns)
+        st.subheader("Matriz normalizada")
+        st.write(MNormalizada)
+        st.markdown("---")
+        st.header("eigen-vectores y eigen-valores")
+        pca = PCA(n_components=None)                # Se instancia el objeto PCA           
+        pca.fit(MNormalizada)                       # Se obtiene los componentes
+        pca.transform(MNormalizada)                  # Se convierte los datos con las nuevas dimensiones
+        if st.checkbox("Mostrar eigen-vectores y eigen-valores"):
+            st.subheader("eigen-vectores")
+            st.write(pd.DataFrame(pca.components_, columns=matriz.columns))
+            st.subheader("eigen-valores")
+            st.dataframe(pca.explained_variance_)
+        st.header("Decisión del número de componentes principales")
+        fig = plt.figure()
+        plt.plot(np.cumsum(pca.explained_variance_ratio_))
+        plt.xlabel('Número de componentes')
+        plt.ylabel('Varianza acumulada')
+        plt.grid()
+        st.pyplot(fig)
+        Ncomponentes = st.slider("Numero de componentes", min_value=1, max_value=len(matriz.columns), step=1, value=1)
+        Varianza = pca.explained_variance_ratio_
+        st.write('Varianza acumulada:', sum(Varianza[0:Ncomponentes]))   
+        st.header("Examinación de proporción de relevancias –cargas–")
+        st.write("Valores absolutos de los componentes principales seleccionados")
+        st.write("*Se resaltan las variables con mayor valor en cada componentes como una ayuda al usuario ")
+        selectedComponents = pd.DataFrame(abs(pca.components_), columns=matriz.columns).head(Ncomponentes)
+
+        st.write(selectedComponents.style.highlight_max(axis=1))
+        # st.write(pd.DataFrame(abs(pca.components_), columns=matriz.columns).head(Ncomponentes))
+    except:
+        st.warning("Hay componentes no numéricas en los datos de entrada ")
+    
+
+def regresion_logistica(dataFrame):
+    Clasificacion = linear_model.LogisticRegression() 
+    st.title("Regresión logística")
+    st.header("Definición de variables predictoras y variable clase")
+    variablesPredictoras = st.multiselect("Variables predictoras", options=dataFrame.columns.tolist())
+    X = dataFrame.loc[:, variablesPredictoras]
+    variableClase = st.selectbox("Variable clase", [x for x in dataFrame.columns.tolist() if x not in variablesPredictoras])
+    Y = dataFrame.loc[:, variableClase]
+    validacionPorcentaje = st.slider("Porcentaje del conjunto de datos para validación", min_value= 1, max_value=100, value=20, step =1)
+    st.write("Entrenamiento: ", 100-validacionPorcentaje, "%")
+    st.write("Validación: ", validacionPorcentaje, "%")
+    if len(variablesPredictoras) < 1:
+        st.warning("Elija las variables predictoras ")
+    else:
+        seed = 1234
+        X_train, X_validation, Y_train, Y_validation = model_selection.train_test_split(X, Y, test_size=validacionPorcentaje/100, random_state=seed, shuffle = True)
+        #Se entrena el modelo a partir de los datos de entrada
+        Clasificacion.fit(X_train, Y_train)
+        #Matriz de clasificación
+        PrediccionesNuevas = Clasificacion.predict(X_validation)
+        confusion_matrix = pd.crosstab(Y_validation.ravel(), PrediccionesNuevas, rownames=['Real'], colnames=['Clasificación'])
+        st.header("Validación del modelo")
+        st.subheader("Matriz de confusión")
+        st.write(confusion_matrix)
+        st.subheader("Evaluación del modelo")
+        exactitud = (confusion_matrix[0][0] + confusion_matrix[1][1])/confusion_matrix.values.sum()
+        tasaError = (confusion_matrix[0][1] + confusion_matrix[1][0])/confusion_matrix.values.sum()
+        precision = confusion_matrix[0][0]/(confusion_matrix[0][0] + confusion_matrix[0][1])
+        sensibilidad = confusion_matrix[0][0]/(confusion_matrix[0][0] + confusion_matrix[1][0])
+        especifidad =  confusion_matrix[1][1]/(confusion_matrix[1][1] + confusion_matrix[0][1])
+        st.write("Exactitud = ", exactitud)
+        st.write("Precisión = ", precision)
+        st.write("Tasa de error = ", tasaError)
+        st.write("Sensibilidad = ", sensibilidad)
+        st.write("Especificidad = ", especifidad)
+        if st.checkbox("Mostrar intercepto y coeficientes"):
+            st.write("Intercepto: ", Clasificacion.intercept_)
+            st.write("Coeficientes: ", pd.DataFrame(Clasificacion.coef_, columns=variablesPredictoras))
+        st.header("Sistema de inferencia basado en el modelo de regresión logística desarrollado")
+        if st.checkbox("Ejecutar"):
+            prediccionEntradas = {}
+            for variable in variablesPredictoras:
+                prediccionEntradas[variable] = [st.number_input(variable, format='%.6f')]
+            if st.button("Clasificar"):
+                st.subheader(Clasificacion.predict(pd.DataFrame(prediccionEntradas))[0])
+
 
 
 # Funcion encargada de la interfaz grafica del algoritmo apriori ademas de
 # calcular las reglas de asociacion
-
-
 def apriori(dataFrame):
     reglas = dataFrame.values.tolist()
     st.title("Reglas de asociación: apriori")
@@ -82,7 +246,7 @@ def correlacion_pearson(dataFrame):
             if st.checkbox("heatmap"):
                 state = st.success("Creando heatmap...")
                 fig = plt.figure()
-                sb.heatmap(matriz, annot=True)
+                sb.heatmap(matriz, cmap='RdBu_r', annot=True, mask=np.triu(matriz))
 
                 st.pyplot(fig)
 
@@ -274,7 +438,7 @@ def clustering_particional(dataFrame):
 # Funcion encargada de la interfaz grafica de la prediccion a base de un modelo logistico
 
 
-def regresion_logistica():
+def SistemaDeInferencia():
     # Funcion encargada de cargar el modelo logistico
     @st.cache
     def load_model():
@@ -342,7 +506,8 @@ def main():
     st.sidebar.header("Algoritmo")
 
     app_menu = st.sidebar.selectbox(
-        "", ["Apriori", "Correlación de Pearson", "Metricas de similitud", "Clustering particional", "Regresión logistica"])
+        "", ["Análisis exploratorio de datos (EDA)", "Análisis de componentes principales", "Clustering particional", 
+        "Regresión logistica", "Apriori", "Correlación de Pearson", "Metricas de similitud", "Sistema de inferencia"])
 
     st.sidebar.subheader("Acceso a los datos")
     uploaded_file = st.sidebar.file_uploader(
@@ -365,9 +530,14 @@ def main():
         elif app_menu == "Clustering particional":
             clustering_particional(dataFrame)
         elif app_menu == "Regresión logistica":
-            regresion_logistica()
-    elif app_menu == "Regresión logistica":
-        regresion_logistica()
+            regresion_logistica(dataFrame)
+        elif app_menu == "Análisis exploratorio de datos (EDA)":
+            analisisExploratorioDatos(dataFrame)
+        elif app_menu == "Análisis de componentes principales":
+            analisisComponentesPrincipales(dataFrame)
+        elif app_menu == "Sistema de inferencia":
+            SistemaDeInferencia()
+
 
 
 if __name__ == "__main__":
